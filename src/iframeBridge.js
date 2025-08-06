@@ -1,13 +1,11 @@
 // iframeBridge.js
 
-const REQUIRED_API = ['getHelloMessage', 'getTime'];
+const REQUIRED_API = ['getInstance', 'getResponse', 'getState', 'oncompleted'];
 
 
 class IframeBridge {
   constructor(iframe) {
     this.iframe = iframe;
-    this.apiVerified = false;
-    this.apiCheckDone = false;
     this.pending = {};
     window.addEventListener('message', this._handleMessage.bind(this));
 
@@ -17,6 +15,7 @@ class IframeBridge {
         return this._callApi(fnName, ...args);
       };
     });
+    this.apiCheckDone = false;
   }
 
   verifyApi() {
@@ -30,9 +29,25 @@ class IframeBridge {
     });
   }
 
+  init() {
+    return new Promise((resolve) => {
+      this._send('getInstance');
+      this._once('instance', (data) => {
+        // Dynamically create API methods
+        if (Array.isArray(data.methods)) {
+          data.methods.forEach(fnName => {
+            this[fnName] = (...args) => this._callApi(fnName, ...args);
+          });
+        }
+        this.apiCheckDone = true;
+        resolve(data.methods);
+      });
+    });
+  }
+
   _callApi(fnName, ...args) {
     return new Promise((resolve, reject) => {
-      if (!this.apiCheckDone || !this.apiVerified) {
+      if (!this.apiCheckDone) {
         return reject(new Error('Iframe API not verified.'));
       }
       this._send('call', { fnName, args });

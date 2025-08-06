@@ -23,22 +23,21 @@ export default {
   mounted() {
   },
   methods: {
-    initializeBridge() {
+    async initializeBridge() {
       const iframe = this.$refs.helloFrame;
       this.bridge = new IframeBridge(iframe);
-      this.bridge.verifyApi().then((verified) => {
-        this.apiVerified = verified;
-      });
+      const methods = await this.bridge.init();
+      this.apiVerified = Array.isArray(methods) && methods.length > 0;
     },
     callIframeScript() {
-      if (this.apiVerified && this.bridge) {
-        this.bridge.getHelloMessage().then(result => {
+      if (this.apiVerified && this.bridge && typeof this.bridge.getResponse === 'function') {
+        this.bridge.getResponse().then(result => {
           this.iframeResult = result;
         }).catch(err => {
           this.iframeResult = err.message;
         });
       } else {
-        this.iframeResult = 'Iframe API not verified.';
+        this.iframeResult = 'Iframe API not verified or method not available.';
       }
     }
   }

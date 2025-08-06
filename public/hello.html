@@ -6,30 +6,45 @@
 </head>
 <body>
   <h1>Hello World</h1>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
   <script>
-    const iframeContext = {
-      getHelloMessage: function() {
-        return 'Hello from iframe context!';
-      },
-      getTime: function() {
-        return new Date().toLocaleTimeString();
-      }
-    };
-
-    window.addEventListener('message', function(event) {
-      if (!event.data || !event.data.type) return;
-      if (event.data.type === 'verifyApi') {
-        const required = Array.isArray(event.data.required) ? event.data.required : [];
-        const verified = required.every(fn => typeof iframeContext[fn] === 'function');
-        event.source.postMessage({ type: 'apiVerified', result: verified }, event.origin);
-      } else if (event.data.type === 'call') {
-        const { fnName, args } = event.data;
-        let result = null;
-        if (typeof iframeContext[fnName] === 'function') {
-          result = iframeContext[fnName](...(args || []));
+    define('iframeContext', [], function(bridge) {
+      const self = {
+        getInstance: function() {
+          return self;
+        },
+        getResponse: function() {
+          return 'This is a response from the iframe context.';
+        },
+        getState: function() {
+          return { status: 'active' };
+        },
+        oncompleted: function(callback) {
+          setTimeout(callback, 1000); // Simulate async completion
         }
-        event.source.postMessage({ type: 'callResult', result }, event.origin);
       }
+      if (bridge) {
+        bridge.register(self);
+      }
+      return self;
+    });
+  </script>
+  <script>
+    require(['iframeContext'], function(iframeContext) {
+      window.addEventListener('message', function(event) {
+        if (!event.data || !event.data.type) return;
+        if (event.data.type === 'getInstance') {
+          const methods = Object.keys(iframeContext).filter(fn => typeof iframeContext[fn] === 'function');
+          event.source.postMessage({ type: 'instance', methods }, event.origin);
+        } else if (event.data.type === 'call') {
+          const { fnName, args } = event.data;
+          let result = null;
+          if (typeof iframeContext[fnName] === 'function') {
+            result = iframeContext[fnName](...(args || []));
+          }
+          event.source.postMessage({ type: 'callResult', result }, event.origin);
+        }
+      });
     });
   </script>
 </body>
