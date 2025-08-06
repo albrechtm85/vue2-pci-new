@@ -15,6 +15,23 @@
         return new Date().toLocaleTimeString();
       }
     };
+
+    window.addEventListener('message', function(event) {
+      if (!event.data || !event.data.type) return;
+      if (event.data.type === 'verifyApi') {
+        const required = Array.isArray(event.data.required) ? event.data.required : [];
+        const verified = required.every(fn => typeof window.iframeContext[fn] === 'function');
+        const available = Object.keys(window.iframeContext).filter(fn => typeof window.iframeContext[fn] === 'function');
+        event.source.postMessage({ type: 'apiVerified', result: verified, required, available }, event.origin);
+      } else if (event.data.type === 'call') {
+        const { fnName, args } = event.data;
+        let result = null;
+        if (typeof window.iframeContext[fnName] === 'function') {
+          result = window.iframeContext[fnName](...(args || []));
+        }
+        event.source.postMessage({ type: 'callResult', result }, event.origin);
+      }
+    });
   </script>
 </body>
 </html>
