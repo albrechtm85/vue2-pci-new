@@ -2,6 +2,7 @@
 
 const REQUIRED_API = ['getHelloMessage', 'getTime'];
 
+
 class IframeBridge {
   constructor(iframe) {
     this.iframe = iframe;
@@ -9,22 +10,27 @@ class IframeBridge {
     this.apiCheckDone = false;
     this.pending = {};
     window.addEventListener('message', this._handleMessage.bind(this));
+
+    // Dynamically create API methods
+    REQUIRED_API.forEach(fnName => {
+      this[fnName] = (...args) => {
+        return this._callApi(fnName, ...args);
+      };
+    });
   }
 
   verifyApi() {
     return new Promise((resolve) => {
       this._send('verifyApi', { required: REQUIRED_API });
       this._once('apiVerified', (payload) => {
-        console.log('API verification result:', payload);
-        
-        this.apiVerified = payload;
+        this.apiVerified = payload.result;
         this.apiCheckDone = true;
-        resolve(payload);
+        resolve(payload.result);
       });
     });
   }
 
-  call(fnName, ...args) {
+  _callApi(fnName, ...args) {
     return new Promise((resolve, reject) => {
       if (!this.apiCheckDone || !this.apiVerified) {
         return reject(new Error('Iframe API not verified.'));
@@ -47,7 +53,12 @@ class IframeBridge {
   _handleMessage(event) {
     if (!event.data || !event.data.type) return;
     if (this.pending[event.data.type]) {
-      this.pending[event.data.type](event.data.result);
+      // For apiVerified, pass the whole payload
+      if (event.data.type === 'apiVerified') {
+        this.pending[event.data.type](event.data);
+      } else {
+        this.pending[event.data.type](event.data.result);
+      }
       delete this.pending[event.data.type];
     }
   }

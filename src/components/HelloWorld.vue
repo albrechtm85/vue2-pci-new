@@ -32,7 +32,7 @@ export default {
   methods: {
     callIframeScript() {
       if (this.apiVerified && this.bridge) {
-        this.bridge.call('getHelloMessage').then(result => {
+        this.bridge.getHelloMessage().then(result => {
           this.iframeResult = result;
         }).catch(err => {
           this.iframeResult = err.message;
