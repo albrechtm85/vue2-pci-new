@@ -10,11 +10,14 @@
 </template>
 
 <script>
+import iframeBridge from '../iframeBridge';
+
 export default {
   data() {
     return {
       iframeResult: '',
-      iframeContext: null
+      iframeContext: null,
+      apiVerified: false
     }
   },
   mounted() {
@@ -23,22 +26,32 @@ export default {
   methods: {
     setIframeContext() {
       const iframe = this.$refs.helloFrame;
-      if (iframe && iframe.contentWindow && iframe.contentWindow.iframeContext) {
-        this.iframeContext = iframe.contentWindow.iframeContext;
-      } else {
-        // Try again after iframe loads
-        iframe.addEventListener('load', () => {
-          if (iframe.contentWindow.iframeContext) {
-            this.iframeContext = iframe.contentWindow.iframeContext;
-          }
-        });
+      const setContext = () => {
+        const ctx = iframe.contentWindow.iframeContext;
+        if (iframeBridge.verifyApi(ctx)) {
+          this.iframeContext = ctx;
+          this.apiVerified = true;
+        } else {
+          this.apiVerified = false;
+        }
+      };
+      if (iframe && iframe.contentWindow) {
+        if (iframe.contentWindow.iframeContext) {
+          setContext();
+        } else {
+          iframe.addEventListener('load', setContext);
+        }
       }
     },
     callIframeScript() {
-      if (this.iframeContext && this.iframeContext.getHelloMessage) {
-        this.iframeResult = this.iframeContext.getHelloMessage();
+      if (this.apiVerified) {
+        try {
+          this.iframeResult = iframeBridge.call(this.iframeContext, 'getHelloMessage');
+        } catch (e) {
+          this.iframeResult = e.message;
+        }
       } else {
-        this.iframeResult = 'Context or function not available yet.';
+        this.iframeResult = 'Iframe API not verified.';
       }
     }
   }
