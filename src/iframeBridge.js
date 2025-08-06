@@ -15,33 +15,28 @@ class IframeBridge {
         return this._callApi(fnName, ...args);
       };
     });
-    this.apiCheckDone = false;
-  }
-
-  verifyApi() {
-    return new Promise((resolve) => {
-      this._send('verifyApi', { required: REQUIRED_API });
-      this._once('apiVerified', (payload) => {
-        this.apiVerified = payload.result;
-        this.apiCheckDone = true;
-        resolve(payload.result);
-      });
-    });
+    this.init();
   }
 
   init() {
-    return new Promise((resolve) => {
-      this._send('getInstance');
-      this._once('instance', (data) => {
-        // Dynamically create API methods
-        if (Array.isArray(data.methods)) {
-          data.methods.forEach(fnName => {
-            this[fnName] = (...args) => this._callApi(fnName, ...args);
-          });
+    this._send('getInstance');
+    this._once('instance', (data) => {
+      if (Array.isArray(data.methods)) {
+        // Verify required API
+        const missing = REQUIRED_API.filter(fn => !data.methods.includes(fn));
+        if (missing.length > 0) {
+          console.error('Missing required API methods in iframe:', missing);
+          this.apiCheckDone = false;
+          return;
         }
+        // Dynamically create API methods
+        data.methods.forEach(fnName => {
+          this[fnName] = (...args) => this._callApi(fnName, ...args);
+        });
         this.apiCheckDone = true;
-        resolve(data.methods);
-      });
+      } else {
+        this.apiCheckDone = false;
+      }
     });
   }
 
