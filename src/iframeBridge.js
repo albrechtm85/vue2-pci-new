@@ -36,8 +36,8 @@ class IframeBridge {
         return reject(new Error('Iframe API not verified.'));
       }
       this._send('call', { fnName, args });
-      this._once('callResult', (result) => {
-        resolve(result);
+      this._once('callResult', (data) => {
+        resolve(data.result);
       });
     });
   }
@@ -53,12 +53,7 @@ class IframeBridge {
   _handleMessage(event) {
     if (!event.data || !event.data.type) return;
     if (this.pending[event.data.type]) {
-      // For apiVerified, pass the whole payload
-      if (event.data.type === 'apiVerified') {
-        this.pending[event.data.type](event.data);
-      } else {
-        this.pending[event.data.type](event.data.result);
-      }
+      this.pending[event.data.type](event.data);
       delete this.pending[event.data.type];
     }
   }
