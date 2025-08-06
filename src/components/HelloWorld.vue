@@ -3,7 +3,7 @@
 
 <template>
   <div>
-    <iframe ref="helloFrame" src="/hello.html" width="100%" height="400" style="border:none;" sandbox="allow-scripts"></iframe>
+    <iframe ref="helloFrame" src="/hello.html" width="100%" height="400" style="border:none;" sandbox="allow-scripts" @load="initializeBridge"></iframe>
     <button @click="callIframeScript">Call iframe script</button>
     <div v-if="iframeResult">Result: {{ iframeResult }}</div>
   </div>
@@ -21,15 +21,15 @@ export default {
     }
   },
   mounted() {
-    const iframe = this.$refs.helloFrame;
-    iframe.addEventListener('load', () => {
+  },
+  methods: {
+    initializeBridge() {
+      const iframe = this.$refs.helloFrame;
       this.bridge = new IframeBridge(iframe);
       this.bridge.verifyApi().then((verified) => {
         this.apiVerified = verified;
       });
-    });
-  },
-  methods: {
+    },
     callIframeScript() {
       if (this.apiVerified && this.bridge) {
         this.bridge.getHelloMessage().then(result => {
