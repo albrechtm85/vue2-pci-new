@@ -13,16 +13,32 @@
 export default {
   data() {
     return {
-      iframeResult: ''
+      iframeResult: '',
+      iframeContext: null
     }
   },
+  mounted() {
+    this.setIframeContext();
+  },
   methods: {
-    callIframeScript() {
+    setIframeContext() {
       const iframe = this.$refs.helloFrame;
-      if (iframe && iframe.contentWindow && iframe.contentWindow.getHelloMessage) {
-        this.iframeResult = iframe.contentWindow.getHelloMessage();
+      if (iframe && iframe.contentWindow && iframe.contentWindow.iframeContext) {
+        this.iframeContext = iframe.contentWindow.iframeContext;
       } else {
-        this.iframeResult = 'Function not available yet.';
+        // Try again after iframe loads
+        iframe.addEventListener('load', () => {
+          if (iframe.contentWindow.iframeContext) {
+            this.iframeContext = iframe.contentWindow.iframeContext;
+          }
+        });
+      }
+    },
+    callIframeScript() {
+      if (this.iframeContext && this.iframeContext.getHelloMessage) {
+        this.iframeResult = this.iframeContext.getHelloMessage();
+      } else {
+        this.iframeResult = 'Context or function not available yet.';
       }
     }
   }

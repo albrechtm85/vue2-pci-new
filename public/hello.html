@@ -7,9 +7,14 @@
 <body>
   <h1>Hello World</h1>
   <script>
-    window.getHelloMessage = function() {
-      return 'Hello from iframe!';
-    }
+    window.iframeContext = {
+      getHelloMessage: function() {
+        return 'Hello from iframe context!';
+      },
+      getTime: function() {
+        return new Date().toLocaleTimeString();
+      }
+    };
   </script>
 </body>
 </html>
