@@ -6,11 +6,27 @@
 </head>
 <body>
   <h1>Hello World</h1>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+  <!-- Custom module loader, no require.js -->
   <script>
-    define('iframeContext', [], function(bridge) {
+    window.context = {
+      register: function(ctx) {
+        console.log('Registering iframe context:', ctx);
+        
+        window.iframeContext = ctx;
+      }
+    };
+    // Custom define implementation that passes window.context as parameter
+    window._modules = {};
+    window.define = function(name, factory) {
+      window._modules[name] = factory(window.context);
+    };
+  </script>
+  <script>
+    define('iframeContext', function(context) {
+      console.log('Defining iframeContext', context);
       const self = {
         getInstance: function() {
+          console.log('Getting instance of iframe context');
           return self;
         },
         getResponse: function() {
@@ -22,29 +38,31 @@
         oncompleted: function(callback) {
           setTimeout(callback, 1000); // Simulate async completion
         }
-      }
-      if (bridge) {
-        bridge.register(self);
+      };
+      if (context) {
+        context.register(self);
       }
       return self;
     });
   </script>
   <script>
-    require(['iframeContext'], function(iframeContext) {
-      window.addEventListener('message', function(event) {
-        if (!event.data || !event.data.type) return;
-        if (event.data.type === 'getInstance') {
-          const methods = Object.keys(iframeContext).filter(fn => typeof iframeContext[fn] === 'function');
-          event.source.postMessage({ type: 'instance', methods }, event.origin);
-        } else if (event.data.type === 'call') {
-          const { fnName, args } = event.data;
-          let result = null;
-          if (typeof iframeContext[fnName] === 'function') {
-            result = iframeContext[fnName](...(args || []));
-          }
-          event.source.postMessage({ type: 'callResult', result }, event.origin);
+    // Direct usage of iframeContext
+    const iframeContext = window._modules['iframeContext'];
+
+    console.log('Iframe context loaded:', iframeContext);
+    window.addEventListener('message', function(event) {
+      if (!event.data || !event.data.type) return;
+      if (event.data.type === 'getInstance') {
+        const methods = Object.keys(iframeContext).filter(fn => typeof iframeContext[fn] === 'function');
+        event.source.postMessage({ type: 'instance', methods }, event.origin);
+      } else if (event.data.type === 'call') {
+        const { fnName, args } = event.data;
+        let result = null;
+        if (typeof iframeContext[fnName] === 'function') {
+          result = iframeContext[fnName](...(args || []));
         }
-      });
+        event.source.postMessage({ type: 'callResult', result }, event.origin);
+      }
     });
   </script>
 </body>
