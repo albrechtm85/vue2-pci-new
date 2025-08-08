@@ -10,21 +10,19 @@
   <script>
     window.context = {
       register: function(ctx) {
-        console.log('Registering iframe context:', ctx);
-        
-        window.iframeContext = ctx;
+        window._module = ctx;
       }
     };
     // Custom define implementation that passes window.context as parameter
-    window._modules = {};
+    window._module = {};
     window.define = function(name, factory) {
-      window._modules[name] = factory(window.context);
+      factory(window.context);
     };
   </script>
   <script>
     define('iframeContext', function(context) {
-      console.log('Defining iframeContext', context);
       const self = {
+        typeIdentifier: 'iframeContext1',
         getInstance: function() {
           console.log('Getting instance of iframe context');
           return self;
@@ -47,14 +45,12 @@
   </script>
   <script>
     // Direct usage of iframeContext
-    const iframeContext = window._modules['iframeContext'];
-
-    console.log('Iframe context loaded:', iframeContext);
     window.addEventListener('message', function(event) {
       if (!event.data || !event.data.type) return;
-      if (event.data.type === 'getInstance') {
+      const iframeContext = window._module;
+      if (event.data.type === 'validateApi') {
         const methods = Object.keys(iframeContext).filter(fn => typeof iframeContext[fn] === 'function');
-        event.source.postMessage({ type: 'instance', methods }, event.origin);
+        event.source.postMessage({ type: 'api', methods }, event.origin);
       } else if (event.data.type === 'call') {
         const { fnName, args } = event.data;
         let result = null;

@@ -19,8 +19,8 @@ class IframeBridge {
   }
 
   init() {
-    this._send('getInstance');
-    this._once('instance', (data) => {
+    this._send('validateApi');
+    this._once('api', (data) => {
       if (Array.isArray(data.methods)) {
         // Verify required API
         const missing = REQUIRED_API.filter(fn => !data.methods.includes(fn));
